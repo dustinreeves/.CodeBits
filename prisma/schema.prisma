@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  OPEN
+  FINALIZED
+}
+
+enum VetoMode {
+  HARD
+  SOFT
+}
+
+model Session {
+  id        String        @id @default(cuid())
+  name      String
+  joinCode  String        @unique
+  status    SessionStatus @default(OPEN)
+  vetoMode  VetoMode      @default(HARD)
+  createdAt DateTime      @default(now())
+  participants Participant[]
+  movies      Movie[]
+  votes       Vote[]
+  vetoes      Veto[]
+}
+
+model Participant {
+  id        String   @id @default(cuid())
+  sessionId String
+  name      String
+  claimed   Boolean  @default(false)
+  joinedAt  DateTime?
+  createdAt DateTime @default(now())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  votes     Vote[]
+  vetoes    Veto[]
+
+  @@unique([sessionId, name])
+}
+
+model Movie {
+  id        String   @id @default(cuid())
+  sessionId String
+  title     String
+  year      Int?
+  service   String?
+  url       String?
+  createdAt DateTime @default(now())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  votes     Vote[]
+  vetoes    Veto[]
+}
+
+model Vote {
+  id            String      @id @default(cuid())
+  sessionId     String
+  participantId String
+  movieId       String
+  createdAt     DateTime    @default(now())
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  movie         Movie       @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, movieId])
+}
+
+model Veto {
+  id            String      @id @default(cuid())
+  sessionId     String
+  participantId String
+  movieId       String
+  createdAt     DateTime    @default(now())
+  session       Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  movie         Movie       @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, movieId])
+}
